@@ -15,7 +15,18 @@ as $$
 declare
   payload json;
   request_id bigint;
+  onesignal_api_key text;
 begin
+  -- Fetch the API key securely from Vault
+  select decrypted_secret into onesignal_api_key 
+  from vault.decrypted_secrets 
+  where name = 'onesignal_rest_api_key';
+
+  if onesignal_api_key is null then
+    raise log 'OneSignal API key not found in vault';
+    return;
+  end if;
+
   payload := json_build_object(
     'app_id', 'e4a8d7d7-dba0-4ea9-9bc2-d4f7995e5fda',
     'target_channel', 'push',
@@ -27,7 +38,10 @@ begin
 
   select net.http_post(
       url:='https://api.onesignal.com/notifications',
-      headers:='{"Content-Type": "application/json", "Authorization": "Basic os_v2_app_4sunpv63ubhktg6c2t3zsxs73juwya75cc7ufneruwx7xjoahx6pw6pi7hpoxvthzbhndllsihsx7zqqrgcw5ynk7tvih3mdg6hq7ci"}'::jsonb,
+      headers:=json_build_object(
+        'Content-Type', 'application/json',
+        'Authorization', 'Basic ' || onesignal_api_key
+      )::jsonb,
       body:=payload::jsonb
   ) into request_id;
 end;
