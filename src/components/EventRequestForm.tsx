@@ -28,9 +28,10 @@ export function EventRequestForm({ open, onOpenChange, onSuccess, userId }: Even
     event_time: "",
     venue: "",
     coverage_type: "Photography",
+    additional_info: "",
   });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
@@ -46,6 +47,7 @@ export function EventRequestForm({ open, onOpenChange, onSuccess, userId }: Even
       event_time: formData.event_time,
       venue: formData.venue,
       coverage_type: formData.coverage_type,
+      additional_info: formData.additional_info,
       created_by: userId,
     });
 
@@ -66,6 +68,7 @@ export function EventRequestForm({ open, onOpenChange, onSuccess, userId }: Even
       event_time: "",
       venue: "",
       coverage_type: "Photography",
+      additional_info: "",
     });
   };
 
@@ -92,13 +95,39 @@ export function EventRequestForm({ open, onOpenChange, onSuccess, userId }: Even
           </div>
           <div className="space-y-2">
             <Label htmlFor="club_name" className="text-neutral-300">Club Name</Label>
-            <Input
+            <select
               id="club_name"
               name="club_name"
               value={formData.club_name}
               onChange={handleChange}
               required
-              className="border-neutral-800 bg-neutral-900 text-white"
+              className="flex h-10 w-full rounded-md border border-neutral-800 bg-neutral-900 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-red-500 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <option value="" disabled>Select your club</option>
+              <option value="Beta Labs">Beta Labs</option>
+              <option value="GDG">GDG</option>
+              <option value="Drama Club">Drama Club</option>
+              <option value="Music Club">Music Club</option>
+              <option value="LITSOC">LITSOC</option>
+              <option value="MindQuest">MindQuest</option>
+              <option value="Cyber Club">Cyber Club</option>
+              <option value="Enigma">Enigma</option>
+              <option value="Finance & eCell">Finance & eCell</option>
+              <option value="TAD">TAD</option>
+              <option value="Wildbeats">Wildbeats</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="additional_info" className="text-neutral-300">Additional Info (Optional)</Label>
+            <textarea
+              id="additional_info"
+              name="additional_info"
+              value={formData.additional_info}
+              onChange={handleChange}
+              rows={3}
+              placeholder="Any specific instructions or details..."
+              className="flex w-full rounded-md border border-neutral-800 bg-neutral-900 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-red-500 disabled:cursor-not-allowed disabled:opacity-50"
             />
           </div>
           <div className="grid grid-cols-2 gap-4">
