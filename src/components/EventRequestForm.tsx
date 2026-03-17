@@ -17,9 +17,10 @@ interface EventRequestFormProps {
   onOpenChange: (open: boolean) => void;
   onSuccess: () => void;
   userId: string;
+  userName: string;
 }
 
-export function EventRequestForm({ open, onOpenChange, onSuccess, userId }: EventRequestFormProps) {
+export function EventRequestForm({ open, onOpenChange, onSuccess, userId, userName }: EventRequestFormProps) {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     event_name: "",
@@ -49,6 +50,7 @@ export function EventRequestForm({ open, onOpenChange, onSuccess, userId }: Even
       coverage_type: formData.coverage_type,
       additional_info: formData.additional_info,
       created_by: userId,
+      requester_name: userName,
     });
 
     if (error) {

@@ -1,4 +1,4 @@
-import { Camera, Calendar, MapPin, Users, Link as LinkIcon, AlertCircle, Check, Clock } from "lucide-react";
+import { Camera, Calendar, MapPin, Users, Link as LinkIcon, AlertCircle, Check, Clock, User } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 
@@ -14,6 +14,7 @@ export type Event = {
   uploader: string | null;
   status: string;
   drive_link?: string;
+  requester_name?: string | null;
 };
 
 interface EventCardProps {
@@ -73,6 +74,12 @@ export function EventCard({ event, userRole, userName, onEditClick, onClaimClick
           )}
           <h3 className="font-semibold text-xl text-white tracking-tight line-clamp-1">{event.event_name}</h3>
           <p className="text-sm text-neutral-400 mt-1">{event.club_name}</p>
+          {event.requester_name && (
+            <div className="flex items-center gap-1 text-xs text-neutral-500 mt-2">
+              <Users className="h-3 w-3" />
+              Requested by <span className="text-neutral-300 font-medium">{event.requester_name}</span>
+            </div>
+          )}
         </div>
         <div className="flex flex-col items-end gap-2">
           <span className={`text-xs px-3 py-1 rounded-md border font-medium ${statusColors[event.status] || statusColors["Requested"]}`}>

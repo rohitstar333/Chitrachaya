@@ -124,6 +124,7 @@ export default function RequesterDashboard() {
                 onOpenChange={setIsEventFormOpen}
                 onSuccess={fetchEvents}
                 userId={user?.id || ""}
+                userName={userName}
             />
 
             <RoleRequestForm
