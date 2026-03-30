@@ -5,6 +5,7 @@ import { RoleRequestsPanel } from "@/components/RoleRequestsPanel";
 import { Header } from "@/components/Header";
 import { EventCard, Event as EventType } from "@/components/EventCard";
 import { RequestMemberModal } from "@/components/RequestMemberModal";
+import { EventRequestForm } from "@/components/EventRequestForm";
 import { Check, X, BellRing } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -19,6 +20,7 @@ export default function ClubDashboard() {
     const [taskRequests, setTaskRequests] = useState<any[]>([]);
     const [selectedEventForRequest, setSelectedEventForRequest] = useState<EventType | null>(null);
     const [selectedEventForUpdate, setSelectedEventForUpdate] = useState<EventType | null>(null);
+    const [requestModalOpen, setRequestModalOpen] = useState(false);
 
     const userName = user?.user_metadata?.full_name || "Club Member";
 
@@ -150,9 +152,17 @@ export default function ClubDashboard() {
 
             <div className="w-full max-w-7xl px-6 md:px-8 py-10 space-y-12">
 
-                <div className="mb-2">
-                    <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-white mb-2">Welcome, {userName}</h1>
-                    <p className="text-neutral-400">Here's what's happening in the club today.</p>
+                <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-2">
+                    <div>
+                        <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-white mb-2">Welcome, {userName}</h1>
+                        <p className="text-neutral-400">Here's what's happening in the club today.</p>
+                    </div>
+                    <Button 
+                        onClick={() => setRequestModalOpen(true)}
+                        className="bg-red-600 hover:bg-red-700 text-white whitespace-nowrap shrink-0"
+                    >
+                        Request Event Coverage
+                    </Button>
                 </div>
 
                 {role === "SubLead" && (
@@ -307,6 +317,14 @@ export default function ClubDashboard() {
                 event={selectedEventForRequest}
                 requesterId={user?.id || ""}
                 requesterName={userName}
+            />
+
+            <EventRequestForm
+                open={requestModalOpen}
+                onOpenChange={setRequestModalOpen}
+                onSuccess={fetchEvents}
+                userId={user?.id || ""}
+                userName={userName}
             />
 
             <UpdateProgressModal
