@@ -132,6 +132,17 @@ export default function ClubDashboard() {
         }
     };
 
+    const handleDeleteEvent = async (event: EventType) => {
+        if (!window.confirm(`Are you sure you want to delete "${event.event_name}"?`)) return;
+        const { error } = await supabase.from("events").delete().eq("id", event.id);
+        if (error) {
+            toast.error("Failed to delete event: " + error.message);
+        } else {
+            toast.success("Event deleted successfully!");
+            fetchEvents();
+        }
+    };
+
     const activeEvents = events.filter(e => e.status !== "Delivered");
     const pastEvents = events.filter(e => e.status === "Delivered").reverse(); // Most recent first for past events
 
@@ -239,6 +250,7 @@ export default function ClubDashboard() {
                                         onClaimClick={handleClaim}
                                         onRequestMemberClick={(event) => setSelectedEventForRequest(event)}
                                         onUpdateProgressClick={(event) => setSelectedEventForUpdate(event)}
+                                        onDeleteClick={handleDeleteEvent}
                                     />
                                 ))}
                             </div>

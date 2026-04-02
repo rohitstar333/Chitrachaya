@@ -7,6 +7,7 @@ import { RoleRequestsPanel } from "@/components/RoleRequestsPanel";
 import { Header } from "@/components/Header";
 import { EventCard, Event as EventType } from "@/components/EventCard";
 import { PastEventsLog } from "@/components/PastEventsLog";
+import { toast } from "sonner";
 
 export default function AdminDashboard() {
     const { user, signOut } = useAuth();
@@ -33,6 +34,17 @@ export default function AdminDashboard() {
     useEffect(() => {
         fetchEvents();
     }, []);
+
+    const handleDeleteEvent = async (event: EventType) => {
+        if (!window.confirm(`Are you sure you want to delete "${event.event_name}"?`)) return;
+        const { error } = await supabase.from("events").delete().eq("id", event.id);
+        if (error) {
+            toast.error("Failed to delete event: " + error.message);
+        } else {
+            toast.success("Event deleted successfully!");
+            fetchEvents();
+        }
+    };
 
     const stats = {
         total: events.length,
@@ -124,6 +136,7 @@ export default function AdminDashboard() {
                                     event={event}
                                     userRole={userRole}
                                     onEditClick={() => setSelectedEvent(event)}
+                                    onDeleteClick={handleDeleteEvent}
                                 />
                             ))}
                         </div>

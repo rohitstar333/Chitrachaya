@@ -8,6 +8,7 @@ export type Event = {
   club_name: string;
   date: string;
   event_time: string | null;
+  end_time?: string | null;
   venue: string;
   coverage_type: string;
   photographer: string | null;
@@ -22,6 +23,7 @@ interface EventCardProps {
   userRole: string; // "Admin" | "Lead" | "SubLead" | "Core" | "Event Requester"
   userName?: string;
   onEditClick?: (event: Event) => void;
+  onDeleteClick?: (event: Event) => void;
   onClaimClick?: (eventId: string, roleType: "photographer" | "uploader") => void;
   onRequestMemberClick?: (event: Event) => void;
   onUpdateProgressClick?: (event: Event) => void;
@@ -43,7 +45,7 @@ const statusColors: Record<string, string> = {
   "Delivered": "bg-green-500/10 text-green-400 border-green-500/20",
 };
 
-export function EventCard({ event, userRole, userName, onEditClick, onClaimClick, onRequestMemberClick, onUpdateProgressClick }: EventCardProps) {
+export function EventCard({ event, userRole, userName, onEditClick, onDeleteClick, onClaimClick, onRequestMemberClick, onUpdateProgressClick }: EventCardProps) {
   const currentStatusIndex = statusOrder.indexOf(event.status);
 
   const isUrgent = () => {
@@ -95,6 +97,16 @@ export function EventCard({ event, userRole, userName, onEditClick, onClaimClick
               Edit Status
             </Button>
           )}
+          {["Lead", "SubLead", "Admin"].includes(userRole) && onDeleteClick && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 text-xs text-red-900 hover:bg-red-900/20 hover:text-red-500 mt-1"
+              onClick={() => onDeleteClick(event)}
+            >
+              Delete Event
+            </Button>
+          )}
         </div>
       </div>
 
@@ -111,7 +123,7 @@ export function EventCard({ event, userRole, userName, onEditClick, onClaimClick
         {(event.event_time) && (
           <div className="flex items-center gap-2">
             <Clock className="h-4 w-4 text-red-600" />
-            <span>{event.event_time}</span>
+            <span>{event.event_time}{event.end_time ? ` - ${event.end_time}` : ''}</span>
           </div>
         )}
         <div className="flex items-center gap-2">

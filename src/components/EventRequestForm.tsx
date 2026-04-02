@@ -27,6 +27,7 @@ export function EventRequestForm({ open, onOpenChange, onSuccess, userId, userNa
     club_name: "",
     date: "",
     event_time: "",
+    end_time: "",
     venue: "",
     coverage_type: "Photography",
     additional_info: "",
@@ -46,6 +47,7 @@ export function EventRequestForm({ open, onOpenChange, onSuccess, userId, userNa
       club_name: formData.club_name,
       date: formData.date,
       event_time: formData.event_time,
+      end_time: formData.end_time || null,
       venue: formData.venue,
       coverage_type: formData.coverage_type,
       additional_info: formData.additional_info,
@@ -68,6 +70,7 @@ export function EventRequestForm({ open, onOpenChange, onSuccess, userId, userNa
       club_name: "",
       date: "",
       event_time: "",
+      end_time: "",
       venue: "",
       coverage_type: "Photography",
       additional_info: "",
@@ -107,6 +110,7 @@ export function EventRequestForm({ open, onOpenChange, onSuccess, userId, userNa
             >
               <option value="" disabled>Select your club</option>
               <option value="Beta Labs">Beta Labs</option>
+              <option value="Sports Club">Sports Club</option>
               <option value="GDG">GDG</option>
               <option value="Drama Club">Drama Club</option>
               <option value="Music Club">Music Club</option>
@@ -128,11 +132,11 @@ export function EventRequestForm({ open, onOpenChange, onSuccess, userId, userNa
               value={formData.additional_info}
               onChange={handleChange}
               rows={3}
-              placeholder="Any specific instructions or details..."
+              placeholder="Any specific instructions or details... ex: DL's provided, specific shots needed"
               className="flex w-full rounded-md border border-neutral-800 bg-neutral-900 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-red-500 disabled:cursor-not-allowed disabled:opacity-50"
             />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label htmlFor="date" className="text-neutral-300">Date</Label>
               <Input
@@ -146,12 +150,24 @@ export function EventRequestForm({ open, onOpenChange, onSuccess, userId, userNa
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="event_time" className="text-neutral-300">Time</Label>
+              <Label htmlFor="event_time" className="text-neutral-300">Start Time</Label>
               <Input
                 id="event_time"
                 name="event_time"
                 type="time"
                 value={formData.event_time}
+                onChange={handleChange}
+                required
+                className="border-neutral-800 bg-neutral-900 text-white [&::-webkit-calendar-picker-indicator]:invert"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="end_time" className="text-neutral-300">End Time</Label>
+              <Input
+                id="end_time"
+                name="end_time"
+                type="time"
+                value={formData.end_time}
                 onChange={handleChange}
                 required
                 className="border-neutral-800 bg-neutral-900 text-white [&::-webkit-calendar-picker-indicator]:invert"
