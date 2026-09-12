@@ -19,17 +19,28 @@ interface RequestMemberModalProps {
     event: EventType | null;
     requesterId: string;
     requesterName: string;
+    initialRoleType?: "photographer" | "uploader";
+    requestType?: "direct_request" | "replacement";
 }
 
-export function RequestMemberModal({ open, onOpenChange, event, requesterId, requesterName }: RequestMemberModalProps) {
+export function RequestMemberModal({ 
+    open, 
+    onOpenChange, 
+    event, 
+    requesterId, 
+    requesterName, 
+    initialRoleType = "photographer",
+    requestType = "direct_request"
+}: RequestMemberModalProps) {
     const [loading, setLoading] = useState(false);
     const [targetName, setTargetName] = useState("");
-    const [roleType, setRoleType] = useState<"photographer" | "uploader">("photographer");
+    const [roleType, setRoleType] = useState<"photographer" | "uploader">(initialRoleType);
     const [members, setMembers] = useState<{ id: string, full_name: string, role: string }[]>([]);
     const [isLoadingMembers, setIsLoadingMembers] = useState(false);
 
     useEffect(() => {
         if (open) {
+            setRoleType(initialRoleType);
             setIsLoadingMembers(true);
             const fetchMembers = async () => {
                 const { data, error } = await supabase
@@ -51,11 +62,9 @@ export function RequestMemberModal({ open, onOpenChange, event, requesterId, req
             };
             fetchMembers();
         } else {
-            // Reset when closed
             setTargetName("");
-            setRoleType("photographer");
         }
-    }, [open, requesterName]);
+    }, [open, requesterName, initialRoleType]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -70,6 +79,7 @@ export function RequestMemberModal({ open, onOpenChange, event, requesterId, req
                 requester_name: requesterName,
                 target_user_name: targetName,
                 role_type: roleType,
+                request_type: requestType,
                 status: "Pending"
             },
         ]);
@@ -78,7 +88,8 @@ export function RequestMemberModal({ open, onOpenChange, event, requesterId, req
             toast.error(error.message || "Failed to send request.");
             console.error(error);
         } else {
-            toast.success(`Coverage request sent to ${targetName}!`);
+            const actionText = requestType === "replacement" ? "Replacement request" : "Coverage request";
+            toast.success(`${actionText} sent to ${targetName}!`);
             onOpenChange(false);
             setTargetName("");
         }
@@ -88,13 +99,19 @@ export function RequestMemberModal({ open, onOpenChange, event, requesterId, req
 
     if (!event) return null;
 
+    const isReplacement = requestType === "replacement";
+
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-[425px] bg-neutral-950 text-white border-neutral-800">
                 <DialogHeader>
-                    <DialogTitle>Request Member Coverage</DialogTitle>
+                    <DialogTitle className="text-lg font-bold">
+                        {isReplacement ? `Request Task Replacement (${roleType === 'photographer' ? 'Photo' : 'Upload'})` : 'Request Member Coverage'}
+                    </DialogTitle>
                     <DialogDescription className="text-neutral-400">
-                        Ask a specific team member to cover {event.event_name}.
+                        {isReplacement 
+                            ? `Ask a team member to replace the assigned ${roleType} for ${event.event_name}. If accepted, the task transfers to them.`
+                            : `Ask a specific team member to cover ${event.event_name}.`}
                     </DialogDescription>
                 </DialogHeader>
                 <form onSubmit={handleSubmit} className="space-y-6 pt-4">

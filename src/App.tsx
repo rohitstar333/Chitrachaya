@@ -5,6 +5,7 @@ import { Toaster } from "sonner";
 import AdminDashboard from "./pages/AdminDashboard";
 import RequesterDashboard from "./pages/RequesterDashboard";
 import ClubDashboard from "./pages/ClubDashboard";
+import ITDashboard from "./pages/ITDashboard";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 
@@ -12,8 +13,9 @@ function RedirectHome() {
   const { user, role, isLoading } = useAuth();
   if (isLoading) return null;
   if (!user) return <Navigate to="/login" replace />;
-  if (role === "Lead") return <Navigate to="/admin" replace />;
-  if (role === "SubLead" || role === "Core") return <Navigate to="/club" replace />;
+  if (role === "IT") return <Navigate to="/it" replace />;
+  if (role === "Lead" || role === "Admin" || role === "3rd year") return <Navigate to="/admin" replace />;
+  if (role === "SubLead" || role === "Core" || role === "2nd year" || role === "1st year") return <Navigate to="/club" replace />;
   return <Navigate to="/requester" replace />;
 }
 
@@ -24,9 +26,10 @@ function AppContent() {
         <Route path="/" element={<RedirectHome />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
-        <Route path="/admin" element={<ProtectedRoute allowedRoles={["Lead"]}><AdminDashboard /></ProtectedRoute>} />
-        <Route path="/club" element={<ProtectedRoute allowedRoles={["SubLead", "Core"]}><ClubDashboard /></ProtectedRoute>} />
+        <Route path="/admin" element={<ProtectedRoute allowedRoles={["Lead", "Admin", "3rd year"]}><AdminDashboard /></ProtectedRoute>} />
+        <Route path="/club" element={<ProtectedRoute allowedRoles={["SubLead", "Core", "2nd year", "1st year"]}><ClubDashboard /></ProtectedRoute>} />
         <Route path="/requester" element={<ProtectedRoute allowedRoles={["Event Requester"]}><RequesterDashboard /></ProtectedRoute>} />
+        <Route path="/it" element={<ProtectedRoute allowedRoles={["IT"]}><ITDashboard /></ProtectedRoute>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       <Toaster position="top-center" richColors theme="dark" />
@@ -49,7 +52,6 @@ export default function App() {
           serviceWorkerParam: { scope: "/" },
           serviceWorkerPath: "sw.js"
         });
-        // Prompt the user for notification permissions automatically
         OneSignal.Slidedown.promptPush();
       } catch (error) {
         console.error("OneSignal Initialization Error:", error);

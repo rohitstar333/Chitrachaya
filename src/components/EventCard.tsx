@@ -1,32 +1,34 @@
-import { Camera, Calendar, MapPin, Users, Link as LinkIcon, AlertCircle, Check, Clock, User } from "lucide-react";
 import { format } from "date-fns";
+import { Calendar, MapPin, Camera, Clock, AlertCircle, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-export type Event = {
+export interface Event {
   id: string;
   event_name: string;
   club_name: string;
   date: string;
-  event_time: string | null;
-  end_time?: string | null;
+  event_time?: string;
+  end_time?: string;
   venue: string;
   coverage_type: string;
-  photographer: string | null;
-  uploader: string | null;
-  status: string;
+  photographer?: string;
+  uploader?: string;
+  status: "Requested" | "Assigned" | "In Progress" | "Uploaded" | "Delivered";
   drive_link?: string;
-  requester_name?: string | null;
-};
+}
 
 interface EventCardProps {
   event: Event;
-  userRole: string; // "Admin" | "Lead" | "SubLead" | "Core" | "Event Requester"
+  userRole: string;
   userName?: string;
+  cameraRequestStatus?: { status: string; requester_name: string; assignee_phone: string } | null;
   onEditClick?: (event: Event) => void;
   onDeleteClick?: (event: Event) => void;
   onClaimClick?: (eventId: string, roleType: "photographer" | "uploader") => void;
   onRequestMemberClick?: (event: Event) => void;
   onUpdateProgressClick?: (event: Event) => void;
+  onReplaceMemberClick?: (event: Event, roleType: "photographer" | "uploader") => void;
+  onRequestCameraClick?: (event: Event) => void;
 }
 
 const statusOrder = [
@@ -45,23 +47,22 @@ const statusColors: Record<string, string> = {
   "Delivered": "bg-green-500/10 text-green-400 border-green-500/20",
 };
 
-export function EventCard({ event, userRole, userName, onEditClick, onDeleteClick, onClaimClick, onRequestMemberClick, onUpdateProgressClick }: EventCardProps) {
-  const currentStatusIndex = statusOrder.indexOf(event.status);
-
+export function EventCard({ event, userRole, userName, cameraRequestStatus, onEditClick, onDeleteClick, onClaimClick, onRequestMemberClick, onUpdateProgressClick, onReplaceMemberClick, onRequestCameraClick }: EventCardProps) {
   const isUrgent = () => {
     if (!event.date || !event.event_time) return false;
-    if (event.photographer || event.uploader) return false; // Not urgent if someone claimed it
+    if (event.photographer || event.uploader) return false;
 
     const eventDateTime = new Date(`${event.date}T${event.event_time}`);
     const now = new Date();
     const diffHours = (eventDateTime.getTime() - now.getTime()) / (1000 * 60 * 60);
 
-    return diffHours > 0 && diffHours <= 1; // within 1 hour and not started yet
+    return diffHours > 0 && diffHours <= 1;
   };
 
   const urgent = isUrgent();
-  const isClubMember = ["Lead", "SubLead", "Core"].includes(userRole);
-  const isAdmin = ["Lead", "Admin"].includes(userRole);
+  const isClubMember = userRole !== "Event Requester";
+  const isLeadOrSubLead = ["Lead", "SubLead", "Admin", "3rd year", "2nd year"].includes(userRole);
+  const isAdmin = ["Lead", "Admin", "3rd year"].includes(userRole);
 
   return (
     <div className={`rounded-xl border p-6 flex flex-col bg-[#0a0a0a] transition-all hover:bg-[#0f0f0f] ${urgent && isClubMember ? "border-red-900/50" : "border-neutral-800"
@@ -76,12 +77,6 @@ export function EventCard({ event, userRole, userName, onEditClick, onDeleteClic
           )}
           <h3 className="font-semibold text-xl text-white tracking-tight line-clamp-1">{event.event_name}</h3>
           <p className="text-sm text-neutral-400 mt-1">{event.club_name}</p>
-          {event.requester_name && (
-            <div className="flex items-center gap-1 text-xs text-neutral-500 mt-2">
-              <Users className="h-3 w-3" />
-              Requested by <span className="text-neutral-300 font-medium">{event.requester_name}</span>
-            </div>
-          )}
         </div>
         <div className="flex flex-col items-end gap-2">
           <span className={`text-xs px-3 py-1 rounded-md border font-medium ${statusColors[event.status] || statusColors["Requested"]}`}>
@@ -95,16 +90,6 @@ export function EventCard({ event, userRole, userName, onEditClick, onDeleteClic
               onClick={() => onEditClick(event)}
             >
               Edit Status
-            </Button>
-          )}
-          {["Lead", "SubLead", "Admin"].includes(userRole) && onDeleteClick && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-6 text-xs text-red-900 hover:bg-red-900/20 hover:text-red-500 mt-1"
-              onClick={() => onDeleteClick(event)}
-            >
-              Delete Event
             </Button>
           )}
         </div>
@@ -132,22 +117,61 @@ export function EventCard({ event, userRole, userName, onEditClick, onDeleteClic
         </div>
       </div>
 
-      {/* Assignees (If anyone has claimed) or Claim Buttons for Club Members */}
+      {/* Camera IT Handoff Status Banner */}
+      {cameraRequestStatus && (
+        <div className={`mb-4 px-3.5 py-2 rounded-lg border text-xs font-mono flex items-center justify-between ${cameraRequestStatus.status === "Approved"
+            ? "bg-red-950/40 border-red-900/60 text-red-300"
+            : cameraRequestStatus.status === "Pending"
+              ? "bg-yellow-950/40 border-yellow-900/60 text-yellow-300"
+              : "bg-neutral-900 border-neutral-800 text-neutral-400"
+          }`}>
+          <div className="flex items-center gap-2">
+            <Camera className="h-3.5 w-3.5" />
+            <span>
+              {cameraRequestStatus.status === "Approved"
+                ? `Camera Issued: ${cameraRequestStatus.requester_name} (${cameraRequestStatus.assignee_phone})`
+                : cameraRequestStatus.status === "Pending"
+                  ? `Camera Request Pending IT Approval`
+                  : `Camera Status: ${cameraRequestStatus.status}`}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* Assignees or Claim Buttons */}
       {(event.photographer || event.uploader || isClubMember) && (
         <div className="mb-6 flex flex-wrap gap-2 items-center">
-          {/* Display existing assignees */}
           {event.photographer && (
             <span className="px-3 py-1.5 bg-[#141414] border border-neutral-800 rounded-md text-xs font-medium text-neutral-300 flex items-center gap-2">
               <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span> {event.photographer} (Photo)
+              {(isAdmin || (userName && userName === event.photographer)) && onReplaceMemberClick && (
+                <button
+                  type="button"
+                  onClick={() => onReplaceMemberClick(event, "photographer")}
+                  className="ml-1 text-[10px] text-red-400 hover:text-red-300 underline font-sans"
+                  title="Request member to replace photographer"
+                >
+                  Replace
+                </button>
+              )}
             </span>
           )}
           {event.uploader && (
             <span className="px-3 py-1.5 bg-[#141414] border border-neutral-800 rounded-md text-xs font-medium text-neutral-300 flex items-center gap-2">
               <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span> {event.uploader} (Upload)
+              {(isAdmin || (userName && userName === event.uploader)) && onReplaceMemberClick && (
+                <button
+                  type="button"
+                  onClick={() => onReplaceMemberClick(event, "uploader")}
+                  className="ml-1 text-[10px] text-blue-400 hover:text-blue-300 underline font-sans"
+                  title="Request member to replace uploader"
+                >
+                  Replace
+                </button>
+              )}
             </span>
           )}
 
-          {/* Show Tick to Claim buttons if club member and spots are open */}
           {isClubMember && !event.photographer && onClaimClick && (
             <Button
               size="sm"
@@ -169,7 +193,18 @@ export function EventCard({ event, userRole, userName, onEditClick, onDeleteClic
             </Button>
           )}
 
-          {/* Update Progress Button for Assigned User */}
+          {isLeadOrSubLead && onRequestCameraClick && !cameraRequestStatus && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 text-xs border-red-900/60 bg-red-950/30 text-red-400 hover:bg-red-900/40 hover:text-white transition-all font-normal"
+              onClick={() => onRequestCameraClick(event)}
+            >
+              <Camera className="mr-1.5 h-3 w-3" />
+              Request Camera (IT)
+            </Button>
+          )}
+
           {(event.photographer === userName || event.uploader === userName) && onUpdateProgressClick && event.status !== "Delivered" && (
             <Button
               size="sm"
@@ -181,7 +216,6 @@ export function EventCard({ event, userRole, userName, onEditClick, onDeleteClic
             </Button>
           )}
 
-          {/* Request Members Action for Leads/SubLeads */}
           {["Lead", "SubLead", "Admin", "2nd year", "3rd year"].includes(userRole) && (!event.photographer || !event.uploader) && onRequestMemberClick && (
             <Button
               size="sm"
@@ -196,62 +230,46 @@ export function EventCard({ event, userRole, userName, onEditClick, onDeleteClic
         </div>
       )}
 
-      {/* Drive Link */}
-      {event.drive_link && event.status === "Delivered" && (
-        <div className="mb-6">
+      {/* Status Pipeline Visualizer */}
+      <div className="pt-4 border-t border-neutral-800/80">
+        <div className="flex justify-between items-center text-[10px] text-neutral-500 font-mono mb-2">
+          <span>Pipeline Progress</span>
+          <span>{event.status}</span>
+        </div>
+        <div className="grid grid-cols-5 gap-1.5">
+          {statusOrder.map((status, index) => {
+            const isCompleted = index <= statusOrder.indexOf(event.status);
+            const isCurrent = status === event.status;
+            return (
+              <div
+                key={status}
+                className={`h-1.5 rounded-full transition-all ${isCurrent
+                    ? "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]"
+                    : isCompleted
+                      ? "bg-neutral-600"
+                      : "bg-neutral-900"
+                  }`}
+                title={status}
+              />
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Drive Link (if delivered) */}
+      {event.drive_link && (
+        <div className="mt-4 pt-4 border-t border-neutral-800 flex justify-between items-center text-xs">
+          <span className="text-neutral-400 font-medium">Drive Folder</span>
           <a
             href={event.drive_link}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex flex-col text-sm font-medium text-red-500 hover:text-red-400 transition-colors"
+            className="text-red-500 hover:text-red-400 font-semibold underline flex items-center gap-1"
           >
-            <span className="flex items-center gap-2 mb-1"><LinkIcon className="h-4 w-4" /> View Drive Folder</span>
+            Access Photos →
           </a>
         </div>
       )}
-
-      <div className="mt-auto border-t border-neutral-900 pt-6">
-        {/* Linear Progress Bar */}
-        <div className="relative">
-          {/* Connecting line */}
-          <div className="absolute top-3 left-2 right-2 h-[2px] bg-neutral-900 -z-10 bg-gradient-to-r from-neutral-800 to-neutral-900"></div>
-
-          <div className="flex justify-between items-center text-center px-1">
-            {statusOrder.map((statusStep, i) => {
-              const isCompleted = i < currentStatusIndex || (i === 4 && currentStatusIndex === 4); // 4 is Delivered
-              const isActive = i === currentStatusIndex;
-
-              return (
-                <div key={statusStep} className="flex flex-col items-center gap-2 group relative z-10">
-                  {/* Circle */}
-                  <div className={`h-6 w-6 rounded-full flex items-center justify-center border-2 transition-colors ${isCompleted && !isActive
-                    ? "bg-green-500 border-green-500" // Completed
-                    : isActive && i === 4
-                      ? "bg-green-500 border-green-500" // Delivered active
-                      : isActive
-                        ? "bg-red-600 border-red-600 shadow-[0_0_12px_rgba(220,38,38,0.5)]" // Active step
-                        : "bg-black border-neutral-800" // Future step
-                    }`}>
-                    {isCompleted && !isActive ? (
-                      <Check className="h-3 w-3 text-black font-extrabold stroke-[3px]" />
-                    ) : isActive && i === 4 ? (
-                      <Check className="h-3 w-3 text-black font-extrabold stroke-[3px]" />
-                    ) : isActive ? (
-                      <div className="h-2 w-2 rounded-full bg-white animate-pulse"></div>
-                    ) : null}
-                  </div>
-
-                  {/* Label */}
-                  <span className={`text-[9px] sm:text-[10px] font-medium block w-max absolute top-8 whitespace-nowrap ${isActive ? "text-red-500" : isCompleted ? "text-neutral-400" : "text-neutral-600"
-                    }`}>
-                    {statusStep}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </div>
     </div>
   );
 }

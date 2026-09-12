@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Plus, Camera, ShieldPlus } from "lucide-react";
 import { EventRequestForm } from "@/components/EventRequestForm";
 import { RoleRequestForm } from "@/components/RoleRequestForm";
+import { RequestCameraModal } from "@/components/RequestCameraModal";
 import { Header } from "@/components/Header";
 import { EventCard, Event as EventType } from "@/components/EventCard";
 
@@ -17,6 +18,7 @@ export default function RequesterDashboard() {
     const [loading, setLoading] = useState(true);
     const [isEventFormOpen, setIsEventFormOpen] = useState(false);
     const [isRoleFormOpen, setIsRoleFormOpen] = useState(false);
+    const [selectedEventForCamera, setSelectedEventForCamera] = useState<EventType | null>(null);
 
     const fetchEvents = async () => {
         setLoading(true);
@@ -112,6 +114,8 @@ export default function RequesterDashboard() {
                                     key={event.id}
                                     event={event}
                                     userRole={userRole}
+                                    userName={userName}
+                                    onRequestCameraClick={(event) => setSelectedEventForCamera(event)}
                                 />
                             ))}
                         </div>
@@ -132,6 +136,14 @@ export default function RequesterDashboard() {
                 onOpenChange={setIsRoleFormOpen}
                 userId={user?.id || ""}
                 userName={userName}
+            />
+
+            <RequestCameraModal
+                open={!!selectedEventForCamera}
+                onOpenChange={(open) => !open && setSelectedEventForCamera(null)}
+                event={selectedEventForCamera}
+                userName={userName}
+                userRollNumber={user?.user_metadata?.roll_number}
             />
         </div>
     );

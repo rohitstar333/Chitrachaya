@@ -5,22 +5,32 @@ import { RoleRequestsPanel } from "@/components/RoleRequestsPanel";
 import { Header } from "@/components/Header";
 import { EventCard, Event as EventType } from "@/components/EventCard";
 import { RequestMemberModal } from "@/components/RequestMemberModal";
+import { TeamMembersModal } from "@/components/TeamMembersModal";
+import { CameraRequestModal } from "@/components/CameraRequestModal";
 import { EventRequestForm } from "@/components/EventRequestForm";
-import { Check, X, BellRing } from "lucide-react";
+import { Check, X, BellRing, Camera } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { PastEventsLog } from "@/components/PastEventsLog";
 import { UpdateProgressModal } from "@/components/UpdateProgressModal";
+import { useNavigate } from "react-router-dom";
 
 export default function ClubDashboard() {
     const { user, role, signOut } = useAuth();
+    const navigate = useNavigate();
     const [events, setEvents] = useState<EventType[]>([]);
     const [loading, setLoading] = useState(true);
     const [taskRequests, setTaskRequests] = useState<any[]>([]);
+    const [cameraRequestsMap, setCameraRequestsMap] = useState<Record<string, { status: string; requester_name: string; assignee_phone: string }>>({});
     const [selectedEventForRequest, setSelectedEventForRequest] = useState<EventType | null>(null);
     const [selectedEventForUpdate, setSelectedEventForUpdate] = useState<EventType | null>(null);
+    const [selectedEventForCamera, setSelectedEventForCamera] = useState<EventType | null>(null);
+    const [cameraModalOpen, setCameraModalOpen] = useState(false);
     const [requestModalOpen, setRequestModalOpen] = useState(false);
+    const [teamModalOpen, setTeamModalOpen] = useState(false);
+    const [requestType, setRequestType] = useState<"direct_request" | "replacement">("direct_request");
+    const [initialRoleType, setInitialRoleType] = useState<"photographer" | "uploader">("photographer");
 
     const userName = user?.user_metadata?.full_name || "Club Member";
 
@@ -50,13 +60,29 @@ export default function ClubDashboard() {
         }
     };
 
+    const fetchCameraRequests = async () => {
+        const { data, error } = await supabase
+            .from("camera_requests")
+            .select("event_id, status, requester_name, assignee_phone")
+            .in("status", ["Pending", "Approved"]);
+
+        if (!error && data) {
+            const map: Record<string, { status: string; requester_name: string; assignee_phone: string }> = {};
+            data.forEach((r: any) => {
+                map[r.event_id] = { status: r.status, requester_name: r.requester_name, assignee_phone: r.assignee_phone };
+            });
+            setCameraRequestsMap(map);
+        }
+    };
+
     useEffect(() => {
         fetchEvents();
         fetchTaskRequests();
-        // Set up an interval to refresh urgency every minute
+        fetchCameraRequests();
         const interval = setInterval(() => {
             fetchEvents();
             fetchTaskRequests();
+            fetchCameraRequests();
         }, 60000);
         return () => clearInterval(interval);
     }, [userName]);
@@ -77,7 +103,6 @@ export default function ClubDashboard() {
         } else {
             toast.success(`Successfully claimed as ${roleType === "photographer" ? "Photographer" : "Uploader"}!`);
 
-            // Also update status to Assigned if it was Requested/Approved
             const event = events.find(e => e.id === eventId);
             if (event && (event.status === "Requested" || event.status === "Approved")) {
                 await supabase.from("events").update({ status: "Assigned" }).eq("id", eventId);
@@ -144,17 +169,35 @@ export default function ClubDashboard() {
     };
 
     const activeEvents = events.filter(e => e.status !== "Delivered");
-    const pastEvents = events.filter(e => e.status === "Delivered").reverse(); // Most recent first for past events
+    const pastEvents = events.filter(e => e.status === "Delivered").reverse();
 
     const myTasks = activeEvents.filter(e =>
         e.photographer === userName ||
         e.uploader === userName
     );
 
+    const handleReplaceMemberClick = (event: EventType, roleType: "photographer" | "uploader") => {
+        setSelectedEventForRequest(event);
+        setInitialRoleType(roleType);
+        setRequestType("replacement");
+    };
+
+    const handleDirectRequestClick = (event: EventType) => {
+        setSelectedEventForRequest(event);
+        setInitialRoleType("photographer");
+        setRequestType("direct_request");
+    };
+
+    const handleRequestCameraClick = (event: EventType) => {
+        setSelectedEventForCamera(event);
+        setCameraModalOpen(true);
+    };
+
     const navLinks = [
         { label: "Event Pool", onClick: () => window.scrollTo({ top: 0, behavior: "smooth" }) },
         { label: "My Tasks", onClick: () => document.getElementById("tasks")?.scrollIntoView({ behavior: "smooth", block: "start" }) },
         { label: "Past Events", onClick: () => document.getElementById("past-events")?.scrollIntoView({ behavior: "smooth", block: "start" }) },
+        { label: "Team Directory", onClick: () => setTeamModalOpen(true) },
     ];
 
     return (
@@ -168,12 +211,24 @@ export default function ClubDashboard() {
                         <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-white mb-2">Welcome, {userName}</h1>
                         <p className="text-neutral-400">Here's what's happening in the club today.</p>
                     </div>
-                    <Button 
-                        onClick={() => setRequestModalOpen(true)}
-                        className="bg-red-600 hover:bg-red-700 text-white whitespace-nowrap shrink-0"
-                    >
-                        Request Event Coverage
-                    </Button>
+                    <div className="flex items-center gap-3 shrink-0 flex-wrap">
+                        {["Lead", "SubLead", "Admin", "3rd year", "2nd year"].includes(role || "") && (
+                            <Button 
+                                onClick={() => { setSelectedEventForCamera(null); setCameraModalOpen(true); }}
+                                variant="outline"
+                                className="border-red-900/60 bg-red-950/30 text-red-400 hover:bg-red-900/40 hover:text-white"
+                            >
+                                <Camera className="mr-2 h-4 w-4" />
+                                Request Camera (IT)
+                            </Button>
+                        )}
+                        <Button 
+                            onClick={() => setRequestModalOpen(true)}
+                            className="bg-red-600 hover:bg-red-700 text-white whitespace-nowrap"
+                        >
+                            Request Event Coverage
+                        </Button>
+                    </div>
                 </div>
 
                 {role === "SubLead" && (
@@ -194,7 +249,7 @@ export default function ClubDashboard() {
                                         <p className="text-sm font-semibold text-white mt-1 line-clamp-1">{req.event?.event_name}</p>
                                     </div>
                                     <span className="text-xs px-2.5 py-1 rounded-full border bg-blue-500/10 text-blue-400 border-blue-500/20 inline-block mb-4">
-                                        Role needed: {req.role_type}
+                                        {req.request_type === 'replacement' ? `Replacement Request (${req.role_type})` : `Role needed: ${req.role_type}`}
                                     </span>
                                     <div className="flex gap-2">
                                         <Button
@@ -247,8 +302,11 @@ export default function ClubDashboard() {
                                         event={event}
                                         userRole={role || "Core"}
                                         userName={userName}
+                                        cameraRequestStatus={cameraRequestsMap[event.id]}
                                         onClaimClick={handleClaim}
-                                        onRequestMemberClick={(event) => setSelectedEventForRequest(event)}
+                                        onRequestMemberClick={handleDirectRequestClick}
+                                        onReplaceMemberClick={handleReplaceMemberClick}
+                                        onRequestCameraClick={handleRequestCameraClick}
                                         onUpdateProgressClick={(event) => setSelectedEventForUpdate(event)}
                                         onDeleteClick={handleDeleteEvent}
                                     />
@@ -329,6 +387,13 @@ export default function ClubDashboard() {
                 event={selectedEventForRequest}
                 requesterId={user?.id || ""}
                 requesterName={userName}
+                initialRoleType={initialRoleType}
+                requestType={requestType}
+            />
+
+            <TeamMembersModal
+                open={teamModalOpen}
+                onOpenChange={setTeamModalOpen}
             />
 
             <EventRequestForm
@@ -344,6 +409,20 @@ export default function ClubDashboard() {
                 onOpenChange={(open) => !open && setSelectedEventForUpdate(null)}
                 event={selectedEventForUpdate}
                 onSuccess={fetchEvents}
+            />
+
+            <CameraRequestModal
+                isOpen={cameraModalOpen}
+                onClose={() => setCameraModalOpen(false)}
+                event={selectedEventForCamera}
+                eventsList={activeEvents}
+                currentUser={{
+                    id: user?.id || "",
+                    name: userName,
+                    email: user?.email || "",
+                    role: role || "Member"
+                }}
+                onSuccess={fetchCameraRequests}
             />
         </div>
     );

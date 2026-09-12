@@ -25,12 +25,11 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
 
     if (allowedRoles && role && !allowedRoles.includes(role)) {
         // Fallback redirects based on role
-        if (role === "Lead") return <Navigate to="/admin" replace />;
-        if (role === "SubLead" || role === "Core") return <Navigate to="/club" replace />;
+        if (role === "IT") return <Navigate to="/it" replace />;
+        if (role === "Lead" || role === "Admin" || role === "3rd year") return <Navigate to="/admin" replace />;
+        if (role === "SubLead" || role === "Core" || role === "2nd year" || role === "1st year") return <Navigate to="/club" replace />;
         return <Navigate to="/requester" replace />;
     }
-
-    return <>{children}</>;
 
     return <>{children}</>;
 }

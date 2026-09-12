@@ -1,19 +1,32 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
-import { Camera } from "lucide-react";
+import { Camera, Users } from "lucide-react";
 import { EditEventPanel } from "@/components/EditEventPanel";
 import { RoleRequestsPanel } from "@/components/RoleRequestsPanel";
 import { Header } from "@/components/Header";
 import { EventCard, Event as EventType } from "@/components/EventCard";
 import { PastEventsLog } from "@/components/PastEventsLog";
+import { RequestMemberModal } from "@/components/RequestMemberModal";
+import { TeamMembersModal } from "@/components/TeamMembersModal";
+import { CameraRequestModal } from "@/components/CameraRequestModal";
+import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 export default function AdminDashboard() {
     const { user, signOut } = useAuth();
+    const navigate = useNavigate();
     const [events, setEvents] = useState<EventType[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedEvent, setSelectedEvent] = useState<EventType | null>(null);
+    const [teamModalOpen, setTeamModalOpen] = useState(false);
+    const [selectedEventForRequest, setSelectedEventForRequest] = useState<EventType | null>(null);
+    const [selectedEventForCamera, setSelectedEventForCamera] = useState<EventType | null>(null);
+    const [cameraModalOpen, setCameraModalOpen] = useState(false);
+    const [cameraRequestsMap, setCameraRequestsMap] = useState<Record<string, { status: string; requester_name: string; assignee_phone: string }>>({});
+    const [initialRoleType, setInitialRoleType] = useState<"photographer" | "uploader">("photographer");
+    const [requestType, setRequestType] = useState<"direct_request" | "replacement">("direct_request");
 
     const userName = user?.user_metadata?.full_name || "Admin User";
     const userRole = user?.user_metadata?.role || "Admin";
@@ -31,8 +44,24 @@ export default function AdminDashboard() {
         setLoading(false);
     };
 
+    const fetchCameraRequests = async () => {
+        const { data, error } = await supabase
+            .from("camera_requests")
+            .select("event_id, status, requester_name, assignee_phone")
+            .in("status", ["Pending", "Approved"]);
+
+        if (!error && data) {
+            const map: Record<string, { status: string; requester_name: string; assignee_phone: string }> = {};
+            data.forEach((r: any) => {
+                map[r.event_id] = { status: r.status, requester_name: r.requester_name, assignee_phone: r.assignee_phone };
+            });
+            setCameraRequestsMap(map);
+        }
+    };
+
     useEffect(() => {
         fetchEvents();
+        fetchCameraRequests();
     }, []);
 
     const handleDeleteEvent = async (event: EventType) => {
@@ -58,11 +87,29 @@ export default function AdminDashboard() {
     const activeEvents = events.filter(e => e.status !== "Delivered");
     const pastEvents = events.filter(e => e.status === "Delivered");
 
+    const handleReplaceMemberClick = (event: EventType, roleType: "photographer" | "uploader") => {
+        setSelectedEventForRequest(event);
+        setInitialRoleType(roleType);
+        setRequestType("replacement");
+    };
+
+    const handleDirectRequestClick = (event: EventType) => {
+        setSelectedEventForRequest(event);
+        setInitialRoleType("photographer");
+        setRequestType("direct_request");
+    };
+
+    const handleRequestCameraClick = (event: EventType) => {
+        setSelectedEventForCamera(event);
+        setCameraModalOpen(true);
+    };
+
     const navLinks = [
         { label: "Overview", onClick: () => window.scrollTo({ top: 0, behavior: "smooth" }) },
         { label: "Role Requests", onClick: () => document.getElementById("requests")?.scrollIntoView({ behavior: "smooth", block: "start" }) },
         { label: "Events", onClick: () => document.getElementById("events")?.scrollIntoView({ behavior: "smooth", block: "start" }) },
         { label: "Past Events", onClick: () => document.getElementById("past-events")?.scrollIntoView({ behavior: "smooth", block: "start" }) },
+        { label: "Team Directory", onClick: () => setTeamModalOpen(true) },
     ];
 
     return (
@@ -77,9 +124,16 @@ export default function AdminDashboard() {
                     <div className="relative z-10 max-w-2xl">
                         <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-2 text-white">Welcome, {userName}</h1>
                         <p className="text-xl text-white/90 font-medium mb-4">Chitrachaya Admin</p>
-                        <p className="text-lg text-neutral-400 mb-8">
+                        <p className="text-lg text-neutral-400 mb-6">
                             Manage event coverage requests, photographer assignments, and media delivery — all in one place.
                         </p>
+                        <Button 
+                            onClick={() => { setSelectedEventForCamera(null); setCameraModalOpen(true); }}
+                            className="bg-red-600 hover:bg-red-700 text-white font-semibold"
+                        >
+                            <Camera className="mr-2 h-4 w-4" />
+                            Request Camera (IT)
+                        </Button>
                     </div>
                 </div>
 
@@ -135,8 +189,13 @@ export default function AdminDashboard() {
                                     key={event.id}
                                     event={event}
                                     userRole={userRole}
+                                    userName={userName}
+                                    cameraRequestStatus={cameraRequestsMap[event.id]}
                                     onEditClick={() => setSelectedEvent(event)}
                                     onDeleteClick={handleDeleteEvent}
+                                    onRequestMemberClick={handleDirectRequestClick}
+                                    onReplaceMemberClick={handleReplaceMemberClick}
+                                    onRequestCameraClick={handleRequestCameraClick}
                                 />
                             ))}
                         </div>
@@ -164,12 +223,40 @@ export default function AdminDashboard() {
                 event={selectedEvent}
                 onSuccess={fetchEvents}
             />
+
+            <RequestMemberModal
+                open={!!selectedEventForRequest}
+                onOpenChange={(open) => !open && setSelectedEventForRequest(null)}
+                event={selectedEventForRequest}
+                requesterId={user?.id || ""}
+                requesterName={userName}
+                initialRoleType={initialRoleType}
+                requestType={requestType}
+            />
+
+            <TeamMembersModal
+                open={teamModalOpen}
+                onOpenChange={setTeamModalOpen}
+            />
+
+            <CameraRequestModal
+                isOpen={cameraModalOpen}
+                onClose={() => setCameraModalOpen(false)}
+                event={selectedEventForCamera}
+                eventsList={activeEvents}
+                currentUser={{
+                    id: user?.id || "",
+                    name: userName,
+                    email: user?.email || "",
+                    role: userRole
+                }}
+                onSuccess={fetchCameraRequests}
+            />
         </div>
     );
 }
 
 function StatCard({ title, value, icon }: { title: string, value: number, icon: string }) {
-    // Simple icon rendering based on string for the sleek stat cards
     const renderIcon = () => {
         switch (icon) {
             case 'send': return <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-50"><line x1="22" x2="11" y1="2" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" /></svg>;
