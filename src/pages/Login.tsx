@@ -9,10 +9,15 @@ export default function Login() {
 
     const handleGoogleLogin = async () => {
         setLoading(true);
+        const origin = window.location.origin;
+        const redirectUrl = origin.includes("localhost")
+            ? "https://chitrachaya.vercel.app/"
+            : `${origin}/`;
+
         const { error } = await supabase.auth.signInWithOAuth({
             provider: "google",
             options: {
-                redirectTo: `${window.location.origin}/`,
+                redirectTo: redirectUrl,
             },
         });
 
