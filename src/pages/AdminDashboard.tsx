@@ -10,6 +10,7 @@ import { PastEventsLog } from "@/components/PastEventsLog";
 import { RequestMemberModal } from "@/components/RequestMemberModal";
 import { TeamMembersModal } from "@/components/TeamMembersModal";
 import { CameraRequestModal } from "@/components/CameraRequestModal";
+import { EventRequestForm } from "@/components/EventRequestForm";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
@@ -21,6 +22,7 @@ export default function AdminDashboard() {
     const [loading, setLoading] = useState(true);
     const [selectedEvent, setSelectedEvent] = useState<EventType | null>(null);
     const [teamModalOpen, setTeamModalOpen] = useState(false);
+    const [requestModalOpen, setRequestModalOpen] = useState(false);
     const [selectedEventForRequest, setSelectedEventForRequest] = useState<EventType | null>(null);
     const [selectedEventForCamera, setSelectedEventForCamera] = useState<EventType | null>(null);
     const [cameraModalOpen, setCameraModalOpen] = useState(false);
@@ -127,13 +129,22 @@ export default function AdminDashboard() {
                         <p className="text-lg text-neutral-400 mb-6">
                             Manage event coverage requests, photographer assignments, and media delivery — all in one place.
                         </p>
-                        <Button 
-                            onClick={() => { setSelectedEventForCamera(null); setCameraModalOpen(true); }}
-                            className="bg-red-600 hover:bg-red-700 text-white font-semibold"
-                        >
-                            <Camera className="mr-2 h-4 w-4" />
-                            Request Camera (IT)
-                        </Button>
+                        <div className="flex items-center gap-3 shrink-0 flex-wrap">
+                            <Button 
+                                onClick={() => setRequestModalOpen(true)}
+                                className="bg-red-600 hover:bg-red-700 text-white font-semibold shadow-md shadow-red-950"
+                            >
+                                Request Event Coverage
+                            </Button>
+                            <Button 
+                                onClick={() => { setSelectedEventForCamera(null); setCameraModalOpen(true); }}
+                                variant="outline"
+                                className="border-red-900/60 bg-red-950/30 text-red-400 hover:bg-red-900/40 hover:text-white"
+                            >
+                                <Camera className="mr-2 h-4 w-4" />
+                                Request Camera (IT)
+                            </Button>
+                        </div>
                     </div>
                 </div>
 
@@ -237,6 +248,14 @@ export default function AdminDashboard() {
             <TeamMembersModal
                 open={teamModalOpen}
                 onOpenChange={setTeamModalOpen}
+            />
+
+            <EventRequestForm
+                open={requestModalOpen}
+                onOpenChange={setRequestModalOpen}
+                onSuccess={fetchEvents}
+                userId={user?.id || ""}
+                userName={userName}
             />
 
             <CameraRequestModal
