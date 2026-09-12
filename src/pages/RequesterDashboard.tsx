@@ -3,6 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Plus, Camera, ShieldPlus } from "lucide-react";
+import { toast } from "sonner";
 import { EventRequestForm } from "@/components/EventRequestForm";
 import { RoleRequestForm } from "@/components/RoleRequestForm";
 import { RequestCameraModal } from "@/components/RequestCameraModal";
@@ -31,6 +32,19 @@ export default function RequesterDashboard() {
             setEvents(data);
         }
         setLoading(false);
+    };
+
+    const handleDeleteEvent = async (event: EventType) => {
+        if (!window.confirm(`Are you sure you want to delete "${event.event_name}"?`)) return;
+
+        const { error } = await supabase.from("events").delete().eq("id", event.id);
+
+        if (error) {
+            toast.error("Failed to delete event: " + error.message);
+        } else {
+            toast.success("Event deleted successfully!");
+            fetchEvents();
+        }
     };
 
     useEffect(() => {
@@ -115,6 +129,7 @@ export default function RequesterDashboard() {
                                     event={event}
                                     userRole={userRole}
                                     userName={userName}
+                                    onDeleteClick={handleDeleteEvent}
                                     onRequestCameraClick={(event) => setSelectedEventForCamera(event)}
                                 />
                             ))}

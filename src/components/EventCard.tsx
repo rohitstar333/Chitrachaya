@@ -1,5 +1,5 @@
 import { format } from "date-fns";
-import { Calendar, MapPin, Camera, Clock, AlertCircle, Users } from "lucide-react";
+import { Calendar, MapPin, Camera, Clock, AlertCircle, Users, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export interface Event {
@@ -82,16 +82,30 @@ export function EventCard({ event, userRole, userName, cameraRequestStatus, onEd
           <span className={`text-xs px-3 py-1 rounded-md border font-medium ${statusColors[event.status] || statusColors["Requested"]}`}>
             {event.status}
           </span>
-          {isAdmin && onEditClick && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-6 text-xs text-neutral-500 hover:text-white"
-              onClick={() => onEditClick(event)}
-            >
-              Edit Status
-            </Button>
-          )}
+          <div className="flex items-center gap-1">
+            {isAdmin && onEditClick && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 text-xs text-neutral-500 hover:text-white px-2"
+                onClick={() => onEditClick(event)}
+              >
+                Edit Status
+              </Button>
+            )}
+            {onDeleteClick && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 text-xs text-red-500 hover:text-red-400 hover:bg-red-950/30 px-2"
+                onClick={() => onDeleteClick(event)}
+                title="Delete Event"
+              >
+                <Trash2 className="h-3 w-3 mr-1" />
+                Delete
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 

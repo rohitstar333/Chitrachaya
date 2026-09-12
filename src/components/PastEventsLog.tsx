@@ -1,12 +1,13 @@
 import { format } from "date-fns";
 import { Event as EventType } from "@/components/EventCard";
-import { CheckCircle2, Navigation, Anchor } from "lucide-react";
+import { Anchor, Trash2 } from "lucide-react";
 
 interface PastEventsLogProps {
     events: EventType[];
+    onDeleteClick?: (event: EventType) => void;
 }
 
-export function PastEventsLog({ events }: PastEventsLogProps) {
+export function PastEventsLog({ events, onDeleteClick }: PastEventsLogProps) {
     if (events.length === 0) {
         return (
             <div className="rounded-xl border border-dashed border-neutral-800 bg-[#0a0a0a] p-12 text-center text-neutral-500">
@@ -27,6 +28,9 @@ export function PastEventsLog({ events }: PastEventsLogProps) {
                             <th scope="col" className="px-6 py-4 font-semibold tracking-wider">Photographer</th>
                             <th scope="col" className="px-6 py-4 font-semibold tracking-wider">Uploader</th>
                             <th scope="col" className="px-6 py-4 font-semibold tracking-wider text-right">Drive</th>
+                            {onDeleteClick && (
+                                <th scope="col" className="px-6 py-4 font-semibold tracking-wider text-right">Action</th>
+                            )}
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-neutral-800/60">
@@ -73,6 +77,18 @@ export function PastEventsLog({ events }: PastEventsLogProps) {
                                         <span className="text-neutral-600 text-xs italic">-</span>
                                     )}
                                 </td>
+                                {onDeleteClick && (
+                                    <td className="px-6 py-4 whitespace-nowrap text-right">
+                                        <button
+                                            type="button"
+                                            onClick={() => onDeleteClick(event)}
+                                            className="p-1.5 rounded-md text-red-500 hover:text-red-400 hover:bg-red-950/30 transition-colors"
+                                            title="Delete Event"
+                                        >
+                                            <Trash2 className="h-4 w-4" />
+                                        </button>
+                                    </td>
+                                )}
                             </tr>
                         ))}
                     </tbody>
@@ -81,3 +97,4 @@ export function PastEventsLog({ events }: PastEventsLogProps) {
         </div>
     );
 }
+
